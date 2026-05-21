@@ -140,6 +140,7 @@ export const api = {
         const tg = window.Telegram?.WebApp;
         tg?.ready?.();
         const user = tg?.initDataUnsafe?.user;
+        const startParam = tg?.initDataUnsafe?.start_param;
         const fallbackId =
           localStorage.getItem("catchy_mock_id") || String(Math.floor(100000 + Math.random() * 900000));
         localStorage.setItem("catchy_mock_id", fallbackId);
@@ -147,9 +148,11 @@ export const api = {
           method: "POST",
           body: JSON.stringify({
             mode: user ? "telegram" : "mock",
+            initData: tg?.initData || "",
             telegramId: user?.id || fallbackId,
             username: user?.username || "blue_runner",
-            firstName: user?.first_name || "Catchy"
+            firstName: user?.first_name || "Catchy",
+            startParam
           })
         });
         token = res.token;
@@ -281,7 +284,8 @@ declare global {
     Telegram?: {
       WebApp?: {
         ready?: () => void;
-        initDataUnsafe?: { user?: { id: number; username?: string; first_name?: string } };
+        initData?: string;
+        initDataUnsafe?: { start_param?: string; user?: { id: number; username?: string; first_name?: string } };
       };
     };
   }

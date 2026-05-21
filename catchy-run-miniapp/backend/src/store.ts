@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { nanoid } from "nanoid";
+import { Pool } from "pg";
 import { ECONOMY } from "./economy.js";
 
 export type User = {
@@ -105,6 +106,9 @@ const demoStats: PlayerStats[] = [
 
 export class Store {
   private db: Database;
+  private pg?: Pool;
+  private readyPromise: Promise<void>;
+  private writeQueue = Promise.resolve();
   private sqlite?: {
     exec: (sql: string) => void;
     prepare: (sql: string) => {
@@ -114,20 +118,29 @@ export class Store {
   };
 
   constructor(private readonly filePath?: string) {
-    if (filePath?.endsWith(".sqlite")) {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (databaseUrl) {
+      this.pg = new Pool({ connectionString: databaseUrl });
+    } else if (filePath?.endsWith(".sqlite")) {
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
       const require = createRequire(import.meta.url);
       const { DatabaseSync } = require("node:sqlite") as { DatabaseSync: new (filename: string) => NonNullable<Store["sqlite"]> };
       this.sqlite = new DatabaseSync(filePath);
       this.sqlite.exec("CREATE TABLE IF NOT EXISTS app_state (id TEXT PRIMARY KEY, data TEXT NOT NULL)");
     }
-    this.db = this.load();
+    this.db = this.pg ? this.fresh() : this.load();
     this.ensureDemoData();
+    this.readyPromise = this.pg ? this.loadPostgres() : Promise.resolve();
   }
 
-  reset() {
+  async ready() {
+    await this.readyPromise;
+  }
+
+  async reset() {
+    await this.ready();
     this.db = this.fresh();
-    this.persist();
+    await this.persist();
   }
 
   data() {
@@ -135,6 +148,16 @@ export class Store {
   }
 
   persist() {
+    if (this.pg) {
+      const snapshot = JSON.stringify(this.db);
+      this.writeQueue = this.writeQueue.then(() =>
+        this.pg!.query(
+          "INSERT INTO app_state (id, data, updated_at) VALUES ($1, $2::jsonb, now()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()",
+          ["main", snapshot]
+        ).then(() => undefined)
+      );
+      return this.writeQueue;
+    }
     if (!this.filePath) return;
     if (this.sqlite) {
       this.sqlite
@@ -255,6 +278,25 @@ export class Store {
     }
     if (!this.filePath || !fs.existsSync(this.filePath)) return this.fresh();
     return JSON.parse(fs.readFileSync(this.filePath, "utf8")) as Database;
+  }
+
+  private async loadPostgres() {
+    if (!this.pg) return;
+    await this.pg.query(`
+      CREATE TABLE IF NOT EXISTS app_state (
+        id TEXT PRIMARY KEY,
+        data JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+    const row = await this.pg.query<{ data: Database }>("SELECT data FROM app_state WHERE id = $1", ["main"]);
+    if (row.rows[0]?.data) {
+      this.db = row.rows[0].data;
+    } else {
+      this.db = this.fresh();
+      this.ensureDemoData();
+      await this.persist();
+    }
   }
 
   private fresh(): Database {

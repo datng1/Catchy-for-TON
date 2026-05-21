@@ -1,5 +1,6 @@
 import cors from "cors";
 import express, { type Request, type Response, type NextFunction } from "express";
+import crypto from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,22 +14,38 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
   const app = express();
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json());
+  app.use(async (_req, _res, next) => {
+    try {
+      await store.ready();
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
 
   app.get("/health", (_req, res) => res.json({ ok: true, name: "catchy-run-api" }));
 
-  app.post("/api/auth/telegram", (req, res) => {
-    const { mode = "mock", telegramId, username, firstName, startParam, referrerCode } = req.body || {};
-    if (mode !== "mock" && !process.env.TELEGRAM_BOT_TOKEN) {
-      return res.status(400).json({ error: "Real Telegram initData validation requires TELEGRAM_BOT_TOKEN." });
-    }
-    if (!telegramId) return res.status(400).json({ error: "telegramId is required for local mock auth." });
+  app.post("/api/auth/telegram", async (req, res) => {
+    const { mode = "mock", telegramId, username, firstName, startParam, referrerCode, initData } = req.body || {};
+    let authUser = { telegramId: String(telegramId || ""), username, firstName, referrerCode: referrerCode || startParam };
 
-    const { user } = store.createUser({
-      telegramId: String(telegramId),
-      username,
-      firstName,
-      referrerCode: referrerCode || startParam
-    });
+    if (mode !== "mock") {
+      if (!process.env.TELEGRAM_BOT_TOKEN) {
+      return res.status(400).json({ error: "Real Telegram initData validation requires TELEGRAM_BOT_TOKEN." });
+      }
+      const telegram = validateTelegramInitData(String(initData || ""), process.env.TELEGRAM_BOT_TOKEN);
+      if (!telegram) return res.status(401).json({ error: "Invalid Telegram initData." });
+      authUser = {
+        telegramId: String(telegram.user.id),
+        username: telegram.user.username,
+        firstName: telegram.user.first_name,
+        referrerCode: telegram.startParam
+      };
+    }
+    if (!authUser.telegramId) return res.status(400).json({ error: "telegramId is required for local mock auth." });
+
+    const { user } = store.createUser(authUser);
+    await store.persist();
     res.json({ token: tokenFor(user.id), user: publicUser(user) });
   });
 
@@ -41,7 +58,7 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     res.json({ user: publicUser(user), stats: store.statsFor(user.id), disclaimer: ECONOMY.disclaimer });
   });
 
-  app.post("/api/run/start", (req: AuthedRequest, res) => {
+  app.post("/api/run/start", async (req: AuthedRequest, res) => {
     const user = req.user!;
     if (user.isBanned || user.isSuspicious) return res.status(403).json({ error: "User is not eligible for runs." });
     const stats = store.statsFor(user.id);
@@ -50,11 +67,11 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     if (stats.energy === ECONOMY.energyCap - 1) stats.lastEnergyAt = new Date().toISOString();
     const run = { id: nanoid(), userId: user.id, startedAt: new Date().toISOString(), status: "started" as const };
     store.data().runs.push(run);
-    store.persist();
+    await store.persist();
     res.json({ runId: run.id, durationSeconds: ECONOMY.runDurationSeconds, maxScore: ECONOMY.maxScorePerRun, energy: stats.energy });
   });
 
-  app.post("/api/run/finish", (req: AuthedRequest, res) => {
+  app.post("/api/run/finish", async (req: AuthedRequest, res) => {
     const user = req.user!;
     const { runId, score, durationSeconds } = req.body || {};
     const run = store.data().runs.find((item) => item.id === runId && item.userId === user.id);
@@ -65,24 +82,24 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     const elapsedSeconds = (Date.now() - new Date(run.startedAt).getTime()) / 1000;
     if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > ECONOMY.maxScorePerRun) {
       run.status = "rejected";
-      store.persist();
+      await store.persist();
       return res.status(400).json({ error: "Invalid score." });
     }
     if (!Number.isFinite(numericDuration) || numericDuration < 0 || numericDuration > ECONOMY.runDurationSeconds + ECONOMY.runFinishToleranceSeconds) {
       run.status = "rejected";
-      store.persist();
+      await store.persist();
       return res.status(400).json({ error: "Invalid duration." });
     }
     if (numericDuration > elapsedSeconds + ECONOMY.runFinishToleranceSeconds) {
       run.status = "rejected";
-      store.persist();
+      await store.persist();
       return res.status(400).json({ error: "Run finished too early." });
     }
     const trustedSeconds = Math.min(ECONOMY.runDurationSeconds, Math.max(0, elapsedSeconds + ECONOMY.scoreGraceSeconds));
     const trustedScoreCap = Math.min(ECONOMY.maxScorePerRun, ECONOMY.maxScoreBase + trustedSeconds * ECONOMY.maxScorePerSecond);
     if (numericScore > trustedScoreCap) {
       run.status = "rejected";
-      store.persist();
+      await store.persist();
       return res.status(400).json({ error: "Score exceeds trusted pace." });
     }
 
@@ -98,7 +115,7 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     run.durationSeconds = numericDuration;
     run.pointsEarned = awarded;
     maybeAwardReferral(store, user.id, awarded);
-    store.persist();
+    await store.persist();
     res.json({ score: numericScore, pointsEarned: awarded, stats });
   });
 
@@ -115,7 +132,7 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     });
   });
 
-  app.post("/api/tasks/claim", (req: AuthedRequest, res) => {
+  app.post("/api/tasks/claim", async (req: AuthedRequest, res) => {
     const { taskId } = req.body || {};
     const task = store.data().dailyTasks.find((item) => item.id === taskId && item.isActive);
     if (!task) return res.status(404).json({ error: "Task not found." });
@@ -128,7 +145,7 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     }
     const pointsEarned = store.addDailyPoints(req.user!.id, task.rewardPoints, "task_claim");
     store.data().userDailyTasks.push({ userId: req.user!.id, taskId: task.id, date: today, completedAt: new Date().toISOString() });
-    store.persist();
+    await store.persist();
     res.json({ taskId: task.id, pointsEarned, stats: store.statsFor(req.user!.id) });
   });
 
@@ -225,6 +242,23 @@ function publicUser(user: User) {
     firstName: user.firstName,
     referralCode: user.referralCode
   };
+}
+
+function validateTelegramInitData(initData: string, botToken: string) {
+  const params = new URLSearchParams(initData);
+  const hash = params.get("hash");
+  const rawUser = params.get("user");
+  if (!hash || !rawUser) return undefined;
+  params.delete("hash");
+  const dataCheckString = [...params.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("\n");
+  const secret = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+  const calculated = crypto.createHmac("sha256", secret).update(dataCheckString).digest("hex");
+  if (!crypto.timingSafeEqual(Buffer.from(calculated, "hex"), Buffer.from(hash, "hex"))) return undefined;
+  const user = JSON.parse(rawUser) as { id: number; username?: string; first_name?: string };
+  return { user, startParam: params.get("start_param") || undefined };
 }
 
 function tokenFor(userId: string) {
