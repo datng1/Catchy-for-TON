@@ -28,7 +28,7 @@ describe("App", () => {
     render(<App />);
     expect(await screen.findByText("Play 30s Run")).toBeInTheDocument();
     fireEvent.click(screen.getAllByText("Tasks").at(-1)!);
-    expect(await screen.findByText("Join channel")).toBeInTheDocument();
+    expect(await screen.findByText("Daily Check-in")).toBeInTheDocument();
     fireEvent.click(screen.getAllByText("Friends").at(-1)!);
     await waitFor(() => expect(screen.getAllByText("Friends").length).toBeGreaterThan(0));
     fireEvent.click(screen.getAllByText("Leaders").at(-1)!);
@@ -43,6 +43,15 @@ describe("App", () => {
     await waitFor(() => expect(screen.getByText("Run Complete")).toBeInTheDocument());
     expect(screen.getByText("+50")).toBeInTheDocument();
     expect(screen.getAllByText("Meme Points").length).toBeGreaterThan(0);
+  });
+
+  it("switches interface language to Russian from settings", async () => {
+    render(<App />);
+    expect(await screen.findByText("Play 30s Run")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByText("Settings").at(-1)!);
+    fireEvent.click(await screen.findByText("RU"));
+    expect(await screen.findByText("Язык и локальные параметры")).toBeInTheDocument();
+    expect(localStorage.getItem("catchy_language")).toBe("ru");
   });
 });
 
