@@ -11,7 +11,7 @@ export const ECONOMY = {
   referralBonusRate: 0.1,
   maxCountedReferralsPerDay: 20,
   disclaimer:
-    "Meme Points are in-app points only. They are not tokens, not money, and do not guarantee any future reward."
+    "Catchy Points are in-app activity points. They are not tokens or money, but they will be a major factor in calculating future rewards if rewards are announced."
 } as const;
 
 export function pointsFromScore(score: number) {

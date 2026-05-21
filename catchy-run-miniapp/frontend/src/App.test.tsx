@@ -5,7 +5,7 @@ import { App } from "./App";
 const profile = {
   user: { id: "u1", username: "blue_runner", firstName: "Catchy", referralCode: "abc" },
   stats: { level: 1, xp: 0, energy: 5, memePoints: 0, dailyPoints: 0, totalScore: 0, bestScore: 0, totalRuns: 0 },
-  disclaimer: "Meme Points are in-app points only. They are not tokens, not money, and do not guarantee any future reward."
+  disclaimer: "Catchy Points are in-app activity points. They are not tokens or money, but they will be a major factor in calculating future rewards if rewards are announced."
 };
 
 beforeEach(() => {
@@ -42,7 +42,7 @@ describe("App", () => {
     fireEvent.click(await screen.findByText("Finish Run"));
     await waitFor(() => expect(screen.getByText("Run Complete")).toBeInTheDocument());
     expect(screen.getByText("+50")).toBeInTheDocument();
-    expect(screen.getAllByText("Meme Points").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Catchy Points").length).toBeGreaterThan(0);
   });
 
   it("switches interface language to Russian from settings", async () => {

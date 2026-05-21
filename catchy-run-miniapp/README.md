@@ -46,4 +46,4 @@ The MVP ships with a code-native light-blue CATCHY mascot and button style so it
 Cute but sharp blue speed rabbit mascot made of TON-inspired energy, light blue and cyan color palette, playful Telegram mini app game character, clever confident expression, aerodynamic ears, glossy 3D sticker style, crisp silhouette, high detail, friendly but mischievous, transparent background, no text, no logos.
 ```
 
-Meme Points are in-app points only. They are not tokens, not money, and do not guarantee any future reward.
+Catchy Points are in-app activity points. They are not tokens or money, but they will be a major factor in calculating future rewards if rewards are announced.

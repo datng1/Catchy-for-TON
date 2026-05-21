@@ -72,7 +72,7 @@ describe("CATCHY API", () => {
     expect(finish.body.error).toBe("Score exceeds trusted pace.");
   });
 
-  it("never exceeds the daily Meme Points cap", async () => {
+  it("never exceeds the daily Catchy Points cap", async () => {
     const { token } = await login("103");
     for (let i = 0; i < 5; i += 1) {
       const runId = await start(token);

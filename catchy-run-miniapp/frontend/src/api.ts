@@ -40,7 +40,7 @@ const TOKEN_KEY = "catchy_token";
 const PROFILE_KEY = "catchy_mock_profile";
 const TASKS_KEY = "catchy_mock_tasks";
 const DISCLAIMER =
-  "Meme Points are in-app points only. They are not tokens, not money, and do not guarantee any future reward.";
+  "Catchy Points are in-app activity points. They are not tokens or money, but they will be a major factor in calculating future rewards if rewards are announced.";
 
 let token = localStorage.getItem(TOKEN_KEY) || "";
 
