@@ -132,6 +132,17 @@ describe("CATCHY API", () => {
     expect(after.body.tasks.find((task: { code: string }) => task.code === "join_channel").claimable).toBe(true);
   });
 
+  it("serves sponsored ads for each app placement", async () => {
+    const { token } = await login("177");
+    for (const placement of ["home_top", "after_run", "daily_checkin"]) {
+      const res = await request(app).get(`/api/ads?placement=${placement}`).set("Authorization", `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.ads[0]).toMatchObject({ placement });
+      expect(res.body.ads[0].title).toBeTruthy();
+      expect(res.body.ads[0].cta).toBeTruthy();
+    }
+  });
+
   it("updates today and all-time leaderboards from stored Catchy Points", async () => {
     const { token } = await login("176");
     const runId = await start(token);
