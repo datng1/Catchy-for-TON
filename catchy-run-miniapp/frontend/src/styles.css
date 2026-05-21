@@ -198,6 +198,7 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
 .wallet-timeline,
 .wallet-connect-panel,
 .wallet-address-card,
+.ad-banner,
 .result-card,
 .friends,
 .wallet,
@@ -222,6 +223,7 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
 .podium-card,
 .wallet-connect-panel,
 .wallet-address-card,
+.ad-banner,
 .wallet-timeline span {
   border-radius: 8px;
   border: 1px solid rgba(12, 119, 171, .12);
@@ -306,6 +308,7 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
 .language-card,
 .wallet-connect-panel,
 .wallet-address-card,
+.ad-banner,
 .wallet-timeline span {
   display: grid;
   gap: 6px;
@@ -920,6 +923,43 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
 
 .wallet-address-card button:disabled {
   background: rgba(255,255,255,.75);
+}
+
+.ad-banner {
+  align-content: start;
+  background: linear-gradient(135deg, rgba(255,255,255,.94), rgba(210,249,255,.88));
+}
+
+.ad-banner span {
+  color: #11749d;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ad-banner p {
+  margin: 0;
+  color: #2f7797;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.ad-banner button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  color: #042f49;
+  font-weight: 900;
+  background: linear-gradient(180deg, #81f3ff, #33c7ef);
+}
+
+.compact-ad {
+  text-align: left;
+}
+
+.ad-modal > span {
+  color: #2f7797;
+  line-height: 1.4;
 }
 
 .language-card span {

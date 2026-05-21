@@ -74,6 +74,31 @@ export type EconomyEvent = {
   createdAt: string;
 };
 
+export type Ad = {
+  id: string;
+  placement: string;
+  sponsor: string;
+  title: string;
+  copy: string;
+  imageUrl?: string;
+  targetUrl: string;
+  cta: string;
+  isActive: boolean;
+  startsAt?: string;
+  endsAt?: string;
+  impressions: number;
+  clicks: number;
+};
+
+export type AdView = {
+  id: string;
+  userId: string;
+  adId: string;
+  placement: string;
+  viewedAt: string;
+  clickedAt?: string;
+};
+
 export type Database = {
   users: User[];
   playerStats: PlayerStats[];
@@ -82,6 +107,8 @@ export type Database = {
   userDailyTasks: UserDailyTask[];
   referrals: Referral[];
   economyEvents: EconomyEvent[];
+  ads: Ad[];
+  adViews: AdView[];
 };
 
 const defaultTasks: DailyTask[] = [
@@ -102,6 +129,45 @@ const demoStats: PlayerStats[] = [
   { userId: "demo-orbit", level: 5, xp: 1960, energy: 5, memePoints: 2280, dailyPoints: 720, dailyPointsDate: dayKey(), totalScore: 428900, bestScore: 38640, totalRuns: 18, lastEnergyAt: new Date().toISOString() },
   { userId: "demo-zap", level: 4, xp: 1280, energy: 4, memePoints: 1720, dailyPoints: 610, dailyPointsDate: dayKey(), totalScore: 312400, bestScore: 33410, totalRuns: 14, lastEnergyAt: new Date().toISOString() },
   { userId: "demo-mint", level: 3, xp: 840, energy: 3, memePoints: 1180, dailyPoints: 450, dailyPointsDate: dayKey(), totalScore: 215100, bestScore: 29580, totalRuns: 9, lastEnergyAt: new Date().toISOString() }
+];
+
+const defaultAds: Ad[] = [
+  {
+    id: "sponsor-ton-builders",
+    placement: "home_top",
+    sponsor: "CATCHY Partners",
+    title: "Build your TON mini app faster",
+    copy: "Sponsor slot demo. Replace this with a paid partner campaign when ready.",
+    targetUrl: "https://t.me/Catchymemeforton_bot?startapp",
+    cta: "Explore",
+    isActive: true,
+    impressions: 0,
+    clicks: 0
+  },
+  {
+    id: "sponsor-after-run",
+    placement: "after_run",
+    sponsor: "Blue Spark Ads",
+    title: "Your project can appear after every run",
+    copy: "High-intent placement for TON, Telegram games and community launches.",
+    targetUrl: "https://t.me/Catchymemeforton_bot?startapp",
+    cta: "Open",
+    isActive: true,
+    impressions: 0,
+    clicks: 0
+  },
+  {
+    id: "sponsor-daily-checkin",
+    placement: "daily_checkin",
+    sponsor: "Daily Sponsor",
+    title: "Watch sponsor to unlock Daily Check-in",
+    copy: "This demo sponsored break records a view before the daily reward can be claimed.",
+    targetUrl: "https://catchy-for-ton.fly.dev/",
+    cta: "Visit sponsor",
+    isActive: true,
+    impressions: 0,
+    clicks: 0
+  }
 ];
 
 export class Store {
@@ -308,13 +374,26 @@ export class Store {
       dailyTasks: defaultTasks,
       userDailyTasks: [],
       referrals: [],
-      economyEvents: []
+      economyEvents: [],
+      ads: defaultAds.map((ad) => ({ ...ad })),
+      adViews: []
     };
   }
 
   private ensureDemoData() {
-    if (!this.filePath) return;
     let changed = false;
+    this.db.ads ||= [];
+    this.db.adViews ||= [];
+    for (const ad of defaultAds) {
+      if (!this.db.ads.some((entry) => entry.id === ad.id)) {
+        this.db.ads.push({ ...ad });
+        changed = true;
+      }
+    }
+    if (!this.filePath) {
+      if (changed) this.persist();
+      return;
+    }
     for (const user of demoUsers) {
       if (!this.db.users.some((entry) => entry.id === user.id)) {
         this.db.users.push(user);

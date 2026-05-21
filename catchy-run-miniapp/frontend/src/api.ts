@@ -24,6 +24,17 @@ export type Task = {
   claimable: boolean;
 };
 
+export type Ad = {
+  id: string;
+  placement: string;
+  sponsor: string;
+  title: string;
+  copy: string;
+  imageUrl?: string;
+  targetUrl: string;
+  cta: string;
+};
+
 type ReferralResponse = {
   inviteLink: string;
   referralCode: string;
@@ -248,6 +259,33 @@ export const api = {
         setMockTasks(tasks.map((item) => (item.id === taskId ? { ...item, claimed: true, claimable: false } : item)));
         return { pointsEarned, stats };
       }
+    ),
+
+  ads: (placement: string) =>
+    fallbackOnOffline(() => requestApi<{ ads: Ad[] }>(`/api/ads?placement=${encodeURIComponent(placement)}`), () => ({
+      ads: [
+        {
+          id: `mock-${placement}`,
+          placement,
+          sponsor: "CATCHY Sponsor",
+          title: placement === "daily_checkin" ? "Watch sponsor to unlock Daily Check-in" : "Sponsor slot available",
+          copy: "Your TON or Telegram project can appear here with impression and click tracking.",
+          targetUrl: "https://t.me/Catchymemeforton_bot?startapp",
+          cta: "Explore"
+        }
+      ]
+    })),
+
+  adImpression: (adId: string) =>
+    fallbackOnOffline(
+      () => requestApi<{ ok: boolean }>(`/api/ads/${adId}/impression`, { method: "POST", body: "{}" }),
+      () => ({ ok: true })
+    ),
+
+  adClick: (adId: string) =>
+    fallbackOnOffline(
+      () => requestApi<{ ok: boolean; targetUrl: string }>(`/api/ads/${adId}/click`, { method: "POST", body: "{}" }),
+      () => ({ ok: true, targetUrl: "https://t.me/Catchymemeforton_bot?startapp" })
     ),
 
   bindWallet: (address: string) =>

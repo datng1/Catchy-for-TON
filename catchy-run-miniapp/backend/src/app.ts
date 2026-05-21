@@ -54,6 +54,36 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
 
   app.use("/api", auth(store));
 
+  app.get("/api/ads", (req: AuthedRequest, res) => {
+    const placement = String(req.query.placement || "home_top");
+    const now = new Date();
+    const ads = store.data().ads
+      .filter((ad) => ad.isActive && ad.placement === placement)
+      .filter((ad) => (!ad.startsAt || new Date(ad.startsAt) <= now) && (!ad.endsAt || new Date(ad.endsAt) >= now));
+    res.json({ ads: ads.map(publicAd) });
+  });
+
+  app.post("/api/ads/:id/impression", async (req: AuthedRequest, res) => {
+    const user = req.user!;
+    const ad = store.data().ads.find((item) => item.id === req.params.id && item.isActive);
+    if (!ad) return res.status(404).json({ error: "Ad not found." });
+    ad.impressions += 1;
+    store.data().adViews.push({ id: nanoid(), userId: user.id, adId: ad.id, placement: ad.placement, viewedAt: new Date().toISOString() });
+    await store.persist();
+    res.json({ ok: true });
+  });
+
+  app.post("/api/ads/:id/click", async (req: AuthedRequest, res) => {
+    const user = req.user!;
+    const ad = store.data().ads.find((item) => item.id === req.params.id && item.isActive);
+    if (!ad) return res.status(404).json({ error: "Ad not found." });
+    ad.clicks += 1;
+    const view = [...store.data().adViews].reverse().find((item) => item.userId === user.id && item.adId === ad.id && !item.clickedAt);
+    if (view) view.clickedAt = new Date().toISOString();
+    await store.persist();
+    res.json({ ok: true, targetUrl: ad.targetUrl });
+  });
+
   app.get("/api/profile", (req: AuthedRequest, res) => {
     const user = req.user!;
     res.json({ user: publicUser(user), stats: store.statsFor(user.id), disclaimer: ECONOMY.disclaimer });
@@ -248,7 +278,23 @@ function isTaskClaimable(store: Store, user: User, code: string) {
     return store.data().referrals.some((ref) => ref.referrerId === user.id && Boolean(ref.firstValidRunAt));
   }
   if (code === "join_group" || code === "meme_contest") return false;
-  return code === "join_channel";
+  if (code === "join_channel") {
+    return store.data().adViews.some((view) => view.userId === user.id && view.placement === "daily_checkin" && view.viewedAt.startsWith(dayKey()));
+  }
+  return false;
+}
+
+function publicAd(ad: { id: string; placement: string; sponsor: string; title: string; copy: string; imageUrl?: string; targetUrl: string; cta: string }) {
+  return {
+    id: ad.id,
+    placement: ad.placement,
+    sponsor: ad.sponsor,
+    title: ad.title,
+    copy: ad.copy,
+    imageUrl: ad.imageUrl,
+    targetUrl: ad.targetUrl,
+    cta: ad.cta
+  };
 }
 
 function publicUser(user: User) {

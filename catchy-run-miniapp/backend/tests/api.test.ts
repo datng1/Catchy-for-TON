@@ -113,6 +113,25 @@ describe("CATCHY API", () => {
     expect(after.body.tasks.find((task: { code: string }) => task.code === "invite_friend").claimable).toBe(true);
   });
 
+  it("requires a daily ad view before Daily Check-in can be claimed", async () => {
+    const { token } = await login("175");
+    const before = await request(app).get("/api/tasks").set("Authorization", `Bearer ${token}`);
+    expect(before.body.tasks.find((task: { code: string }) => task.code === "join_channel").claimable).toBe(false);
+
+    const blocked = await request(app).post("/api/tasks/claim").set("Authorization", `Bearer ${token}`).send({ taskId: "join-channel" });
+    expect(blocked.status).toBe(409);
+
+    const ads = await request(app).get("/api/ads?placement=daily_checkin").set("Authorization", `Bearer ${token}`);
+    expect(ads.status).toBe(200);
+    expect(ads.body.ads[0].id).toBeTruthy();
+
+    const impression = await request(app).post(`/api/ads/${ads.body.ads[0].id}/impression`).set("Authorization", `Bearer ${token}`).send();
+    expect(impression.status).toBe(200);
+
+    const after = await request(app).get("/api/tasks").set("Authorization", `Bearer ${token}`);
+    expect(after.body.tasks.find((task: { code: string }) => task.code === "join_channel").claimable).toBe(true);
+  });
+
   it("binds only valid TON wallet addresses", async () => {
     const { token } = await login("180");
     const bad = await request(app).post("/api/wallet/bind").set("Authorization", `Bearer ${token}`).send({ address: "not-a-wallet" });

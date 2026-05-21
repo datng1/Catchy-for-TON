@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TonConnectButton, useTonAddress, useTonWallet } from "@tonconnect/ui-react";
-import { api, type Profile, type Stats, type Task } from "./api";
+import { api, type Ad, type Profile, type Stats, type Task } from "./api";
 import { GameCanvas, type GameSummary } from "./GameCanvas";
 import mascotHero from "./assets/mascot-hero.png";
 import iconBoost from "./assets/icon-boost.png";
@@ -135,8 +135,17 @@ const copy = {
       memeCopy: "Community posts can be rewarded without token promises.",
       claimed: "Claimed",
       claim: "Claim",
+      watchAd: "Watch Ad",
       locked: "Locked",
       points: "points"
+    },
+    ads: {
+      label: "Sponsored",
+      watchTitle: "Sponsored break",
+      watchCopy: "View this sponsor to unlock Daily Check-in.",
+      done: "Ad viewed",
+      visit: "Visit sponsor",
+      continue: "Continue"
     },
     friends: {
       eyebrow: "Growth loop",
@@ -398,6 +407,14 @@ const copy = {
 } as const;
 
 type Copy = (typeof copy)[Language];
+const adCopy = {
+  label: "Sponsored",
+  watchTitle: "Sponsored break",
+  watchCopy: "View this sponsor to unlock Daily Check-in.",
+  done: "Ad viewed",
+  visit: "Visit sponsor",
+  continue: "Continue"
+};
 
 function getInitialLanguage(): Language {
   const saved = localStorage.getItem(LANG_KEY);
@@ -409,6 +426,8 @@ export function App() {
   const [screen, setScreen] = useState<Screen>("home");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [homeAd, setHomeAd] = useState<Ad | null>(null);
+  const [afterRunAd, setAfterRunAd] = useState<Ad | null>(null);
   const [referrals, setReferrals] = useState<{ inviteLink: string; referrals: Array<{ pointsEarned: number; invited: { username: string } }>; totalBonus: number } | null>(null);
   const [leaders, setLeaders] = useState<Array<{ rank: number; user: { username: string; firstName: string }; score: number; bestScore: number }>>([]);
   const [leaderType, setLeaderType] = useState("today");
@@ -454,6 +473,12 @@ export function App() {
     if (screen === "friends") api.referrals().then(setReferrals).catch((err: Error) => setError(err.message));
     if (screen === "leaderboard") api.leaderboard(leaderType).then((res) => setLeaders(res.rows)).catch((err: Error) => setError(err.message));
   }, [screen, profile, leaderType]);
+
+  useEffect(() => {
+    if (!profile) return;
+    api.ads("home_top").then((res) => setHomeAd(res.ads[0] || null)).catch(() => setHomeAd(null));
+    api.ads("after_run").then((res) => setAfterRunAd(res.ads[0] || null)).catch(() => setAfterRunAd(null));
+  }, [profile]);
 
   const statCards = useMemo(() => profile ? [
     [t.stats.memePoints, formatNumber(profile.stats.memePoints), t.stats.offchain],
@@ -513,15 +538,17 @@ export function App() {
               username={profile.user.username}
               onPlay={() => setScreen("play")}
               onScreen={setScreen}
+              ad={homeAd}
               disclaimer={language === "ru" ? t.home.disclaimer : profile.disclaimer}
               t={t}
             />
           )}
-          {screen === "play" && <Play onDone={refreshProfile} onError={setError} stats={profile?.stats} onHome={() => setScreen("home")} t={t} />}
+          {screen === "play" && <Play ad={afterRunAd} onDone={refreshProfile} onError={setError} stats={profile?.stats} onHome={() => setScreen("home")} t={t} />}
           {screen === "tasks" && (
             <Tasks
               tasks={tasks}
               t={t}
+              onRefresh={async () => setTasks((await api.tasks()).tasks)}
               onClaim={async (taskId) => {
                 const res = await api.claimTask(taskId);
                 setProfile((old) => old && ({ ...old, stats: res.stats }));
@@ -580,7 +607,7 @@ function Loading({ t }: { t: Copy }) {
   );
 }
 
-function Home({ stats, username, onPlay, onScreen, disclaimer, t }: { stats: Stats; username: string; onPlay: () => void; onScreen: (screen: Screen) => void; disclaimer: string; t: Copy }) {
+function Home({ stats, username, onPlay, onScreen, ad, disclaimer, t }: { stats: Stats; username: string; onPlay: () => void; onScreen: (screen: Screen) => void; ad: Ad | null; disclaimer: string; t: Copy }) {
   const dailyPercent = Math.min(100, Math.round((stats.dailyPoints / 1000) * 100));
   const xpPercent = Math.min(100, Math.round(((stats.xp % 120) / 120) * 100));
   return (
@@ -619,6 +646,7 @@ function Home({ stats, username, onPlay, onScreen, disclaimer, t }: { stats: Sta
             <strong>{t.home.economyRule}</strong>
             <span>{disclaimer}</span>
           </div>
+          {ad && <AdBanner ad={ad} />}
         </section>
       </div>
     </div>
@@ -697,7 +725,7 @@ function StatusLadder({ stats, t }: { stats: Stats; t: Copy }) {
 }
 
 
-function Play({ onDone, onError, stats, onHome, t }: { onDone: () => Promise<void>; onError: (msg: string) => void; stats?: Stats; onHome: () => void; t: Copy }) {
+function Play({ ad, onDone, onError, stats, onHome, t }: { ad: Ad | null; onDone: () => Promise<void>; onError: (msg: string) => void; stats?: Stats; onHome: () => void; t: Copy }) {
   const [run, setRun] = useState<{ runId: string; durationSeconds: number } | null>(null);
   const [result, setResult] = useState<{ score: number; pointsEarned: number; summary: GameSummary } | null>(null);
 
@@ -748,6 +776,7 @@ function Play({ onDone, onError, stats, onHome, t }: { onDone: () => Promise<voi
               <span><strong>{result.summary.hits}/{result.summary.misses}</strong>{t.play.hitMiss}</span>
               <span><strong>+{result.pointsEarned}</strong>{t.stats.memePoints}</span>
             </div>
+            {ad && <AdBanner ad={ad} compact />}
             <div className="result-actions">
               <button onClick={start}>{t.play.again}</button>
               <button className="secondary-action" onClick={onHome}>{t.play.home}</button>
@@ -759,8 +788,18 @@ function Play({ onDone, onError, stats, onHome, t }: { onDone: () => Promise<voi
   );
 }
 
-function Tasks({ tasks, onClaim, t }: { tasks: Task[]; onClaim: (taskId: string) => Promise<void>; t: Copy }) {
+function Tasks({ tasks, onClaim, onRefresh, t }: { tasks: Task[]; onClaim: (taskId: string) => Promise<void>; onRefresh: () => Promise<void>; t: Copy }) {
   const claimed = tasks.filter((task) => task.claimed).length;
+  const [watching, setWatching] = useState(false);
+  const [watchAd, setWatchAd] = useState<Ad | null>(null);
+  const watchAdLabel = "watchAd" in t.tasks ? t.tasks.watchAd : "Watch Ad";
+
+  async function openWatchAd() {
+    const res = await api.ads("daily_checkin");
+    setWatchAd(res.ads[0] || null);
+    setWatching(true);
+  }
+
   return (
     <div className="screen-stack">
       <ScreenTitle eyebrow={t.tasks.eyebrow} title={t.tasks.title} copy={t.tasks.copy} />
@@ -781,10 +820,16 @@ function Tasks({ tasks, onClaim, t }: { tasks: Task[]; onClaim: (taskId: string)
               <strong>{taskTitle(task, t)}</strong>
               <span>{taskCopy(task.code, t)} / +{task.rewardPoints} {t.tasks.points}</span>
             </div>
-            <button disabled={task.claimed || !task.claimable} onClick={() => onClaim(task.id)}>{task.claimed ? t.tasks.claimed : task.claimable ? t.tasks.claim : t.tasks.locked}</button>
+            <button
+              disabled={task.claimed || (!task.claimable && task.code !== "join_channel")}
+              onClick={() => task.code === "join_channel" && !task.claimable ? openWatchAd() : onClaim(task.id)}
+            >
+              {task.claimed ? t.tasks.claimed : task.code === "join_channel" && !task.claimable ? watchAdLabel : task.claimable ? t.tasks.claim : t.tasks.locked}
+            </button>
           </article>
         ))}
       </div>
+      {watching && <WatchAdModal ad={watchAd} onClose={() => setWatching(false)} onViewed={onRefresh} />}
     </div>
   );
 }
@@ -829,6 +874,62 @@ function Friends({ referrals, t }: { referrals: { inviteLink: string; referrals:
       {referrals?.referrals.length ? referrals.referrals.map((ref) => (
         <div className="row" key={ref.invited.username}><strong>@{ref.invited.username}</strong><span>+{ref.pointsEarned}</span></div>
       )) : <EmptyState title={t.friends.empty} copy={t.friends.emptyCopy} />}
+    </div>
+  );
+}
+
+function AdBanner({ ad, compact = false }: { ad: Ad; compact?: boolean }) {
+  const [tracked, setTracked] = useState(false);
+
+  useEffect(() => {
+    if (tracked) return;
+    setTracked(true);
+    api.adImpression(ad.id).catch(() => undefined);
+  }, [ad.id, tracked]);
+
+  async function openAd() {
+    const res = await api.adClick(ad.id);
+    window.open(res.targetUrl || ad.targetUrl, "_blank", "noopener,noreferrer");
+  }
+
+  return (
+    <article className={compact ? "ad-banner compact-ad" : "ad-banner"}>
+      <span>{adCopy.label} / {ad.sponsor}</span>
+      <strong>{ad.title}</strong>
+      <p>{ad.copy}</p>
+      <button onClick={openAd}>{ad.cta}</button>
+    </article>
+  );
+}
+
+function WatchAdModal({ ad, onClose, onViewed }: { ad: Ad | null; onClose: () => void; onViewed: () => Promise<void> }) {
+  const [viewed, setViewed] = useState(false);
+
+  async function markViewed() {
+    if (!ad) return;
+    await api.adImpression(ad.id);
+    setViewed(true);
+    await onViewed();
+  }
+
+  async function visitSponsor() {
+    if (!ad) return;
+    const res = await api.adClick(ad.id);
+    window.open(res.targetUrl || ad.targetUrl, "_blank", "noopener,noreferrer");
+  }
+
+  return (
+    <div className="result-backdrop" role="dialog" aria-modal="true" aria-label={adCopy.watchTitle}>
+      <div className="result-card ad-modal">
+        <p className="eyebrow">{adCopy.label}</p>
+        <h2>{ad?.title || adCopy.watchTitle}</h2>
+        <span>{ad?.copy || adCopy.watchCopy}</span>
+        <div className="result-actions">
+          <button onClick={visitSponsor} disabled={!ad}>{ad?.cta || adCopy.visit}</button>
+          <button className="secondary-action" onClick={markViewed} disabled={!ad || viewed}>{viewed ? adCopy.done : adCopy.continue}</button>
+        </div>
+        <button className="secondary-action" onClick={onClose}>{viewed ? "OK" : "Close"}</button>
+      </div>
     </div>
   );
 }
