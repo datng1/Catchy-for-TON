@@ -1,5 +1,5 @@
 export type Profile = {
-  user: { id: string; username: string; firstName: string; referralCode: string };
+  user: { id: string; username: string; firstName: string; referralCode: string; walletAddress?: string };
   stats: Stats;
   disclaimer: string;
 };
@@ -249,6 +249,12 @@ export const api = {
         return { pointsEarned, stats };
       }
     ),
+
+  bindWallet: (address: string) =>
+    requestApi<{ user: Profile["user"] }>("/api/wallet/bind", {
+      method: "POST",
+      body: JSON.stringify({ address })
+    }),
 
   referrals: () =>
     fallbackOnOffline(() => requestApi<ReferralResponse>("/api/referrals"), () => {

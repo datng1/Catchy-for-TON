@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { nanoid } from "nanoid";
+import { Address } from "@ton/core";
 import { ECONOMY, pointsFromScore } from "./economy.js";
 import { Store, dayKey, type User } from "./store.js";
 
@@ -56,6 +57,22 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
   app.get("/api/profile", (req: AuthedRequest, res) => {
     const user = req.user!;
     res.json({ user: publicUser(user), stats: store.statsFor(user.id), disclaimer: ECONOMY.disclaimer });
+  });
+
+  app.post("/api/wallet/bind", async (req: AuthedRequest, res) => {
+    const user = req.user!;
+    const address = String(req.body?.address || "").trim();
+    if (!address) return res.status(400).json({ error: "Wallet address is required." });
+    let normalized = "";
+    try {
+      normalized = Address.parse(address).toString({ bounceable: false, urlSafe: true });
+    } catch {
+      return res.status(400).json({ error: "Invalid TON wallet address." });
+    }
+    user.walletAddress = normalized;
+    store.addEvent(user.id, "wallet_bind", 0);
+    await store.persist();
+    res.json({ user: publicUser(user) });
   });
 
   app.post("/api/run/start", async (req: AuthedRequest, res) => {
@@ -240,7 +257,8 @@ function publicUser(user: User) {
     telegramId: user.telegramId,
     username: user.username,
     firstName: user.firstName,
-    referralCode: user.referralCode
+    referralCode: user.referralCode,
+    walletAddress: user.walletAddress
   };
 }
 

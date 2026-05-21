@@ -196,6 +196,8 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
 .insight-stack,
 .mini-roadmap,
 .wallet-timeline,
+.wallet-connect-panel,
+.wallet-address-card,
 .result-card,
 .friends,
 .wallet,
@@ -218,6 +220,8 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
 .rail-card,
 .language-card,
 .podium-card,
+.wallet-connect-panel,
+.wallet-address-card,
 .wallet-timeline span {
   border-radius: 8px;
   border: 1px solid rgba(12, 119, 171, .12);
@@ -300,6 +304,8 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
 .invite-card,
 .empty-state,
 .language-card,
+.wallet-connect-panel,
+.wallet-address-card,
 .wallet-timeline span {
   display: grid;
   gap: 6px;
@@ -862,6 +868,34 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
 
 .language-card h3 {
   margin: 0;
+}
+
+.wallet-connect-panel {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.wallet-connect-panel h3,
+.wallet-address-card strong {
+  margin: 0;
+  min-width: 0;
+  color: #053b5c;
+  overflow-wrap: anywhere;
+}
+
+.wallet-address-card button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  color: #042f49;
+  font-weight: 900;
+  background: linear-gradient(180deg, #81f3ff, #33c7ef);
+  box-shadow: 0 12px 24px rgba(24, 154, 208, .22);
+}
+
+.wallet-address-card button:disabled {
+  background: rgba(255,255,255,.75);
 }
 
 .language-card span {

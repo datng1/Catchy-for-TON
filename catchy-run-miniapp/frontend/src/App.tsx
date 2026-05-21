@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { TonConnectButton, useTonAddress, useTonWallet } from "@tonconnect/ui-react";
 import { api, type Profile, type Stats, type Task } from "./api";
 import { GameCanvas, type GameSummary } from "./GameCanvas";
 import mascotHero from "./assets/mascot-hero.png";
@@ -166,16 +167,22 @@ const copy = {
       boards: { today: "Today", allTime: "All Time", referrers: "Referrers", earlyBelievers: "Early" }
     },
     wallet: {
-      eyebrow: "V2 layer",
-      title: "Wallet Soon",
-      copy: "No token, no claim, no transaction in this MVP. CATCHY starts as a game and community loop first.",
-      now: "Now",
-      nowCopy: "Off-chain points, leaderboard, retention, referral quality.",
-      before: "Before token",
-      beforeCopy: "Snapshot rules, bot review, metadata check, public warning.",
-      later: "Later",
-      laterCopy: "TON Connect, wallet binding, cosmetic utility, community rewards.",
-      steps: ["1. Build app traction", "2. Review suspicious accounts", "3. Publish snapshot rules", "4. Add TON Connect later"]
+      eyebrow: "TON layer",
+      title: "Wallet Connect",
+      copy: "Connect a TON wallet for identity binding only. No token claim, no payment, and no transaction is requested in this MVP.",
+      connect: "Connect wallet",
+      connected: "Wallet connected",
+      saved: "Saved to profile",
+      notSaved: "Not saved yet",
+      bind: "Save wallet",
+      address: "Address",
+      sdk: "TON SDK",
+      sdkCopy: "Backend validates wallet addresses with @ton/core before saving.",
+      safety: "Safety",
+      safetyCopy: "CATCHY will never ask for seed phrases. This screen does not request transactions.",
+      utility: "Future utility",
+      utilityCopy: "Wallet-gated cosmetics, snapshots and community rewards can be added after rules are public.",
+      steps: ["1. Connect wallet", "2. Save address", "3. Review beta activity", "4. Publish token rules before any claim"]
     },
     settings: {
       eyebrow: "App settings",
@@ -522,7 +529,7 @@ export function App() {
           )}
           {screen === "friends" && <Friends referrals={referrals} t={t} />}
           {screen === "leaderboard" && <Leaderboard rows={leaders} type={leaderType} onType={setLeaderType} t={t} />}
-          {screen === "wallet" && <Wallet t={t} />}
+          {screen === "wallet" && <Wallet user={profile?.user} onBound={refreshProfile} onError={setError} t={t} />}
           {screen === "settings" && <Settings language={language} onLanguage={setLanguage} t={t} />}
         </section>
       </section>
@@ -829,14 +836,64 @@ function Leaderboard({ rows, type, onType, t }: { rows: Array<{ rank: number; us
   );
 }
 
-function Wallet({ t }: { t: Copy }) {
+function Wallet({ user, onBound, onError, t }: { user?: Profile["user"]; onBound: () => void; onError: (message: string) => void; t: Copy }) {
+  const friendlyAddress = useTonAddress();
+  const rawAddress = useTonAddress(false);
+  const wallet = useTonWallet();
+  const [saving, setSaving] = useState(false);
+  const savedAddress = user?.walletAddress || "";
+  const isSaved = Boolean(rawAddress && savedAddress === rawAddress);
+  const walletCopy = {
+    connect: "Connect wallet",
+    connected: "Wallet connected",
+    saved: "Saved to profile",
+    notSaved: "Not saved yet",
+    bind: "Save wallet",
+    address: "Address",
+    sdk: "TON SDK",
+    sdkCopy: "Backend validates wallet addresses with @ton/core before saving.",
+    safety: "Safety",
+    safetyCopy: "CATCHY will never ask for seed phrases. This screen does not request transactions.",
+    utility: "Future utility",
+    utilityCopy: "Wallet-gated cosmetics, snapshots and community rewards can be added after rules are public.",
+    ...t.wallet
+  };
+
+  const bindWallet = async () => {
+    if (!rawAddress) return;
+    setSaving(true);
+    try {
+      await api.bindWallet(rawAddress);
+      await onBound();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not save wallet.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="wallet screen-stack">
       <ScreenTitle eyebrow={t.wallet.eyebrow} title={t.wallet.title} copy={t.wallet.copy} />
+      <section className="wallet-connect-panel">
+        <div>
+          <p className="eyebrow">{wallet ? walletCopy.connected : walletCopy.connect}</p>
+          <h3>{wallet?.device.appName || "TON Connect"}</h3>
+          <span>{rawAddress ? (isSaved ? walletCopy.saved : walletCopy.notSaved) : t.wallet.copy}</span>
+        </div>
+        <TonConnectButton />
+      </section>
+      {friendlyAddress && (
+        <section className="wallet-address-card">
+          <p className="eyebrow">{walletCopy.address}</p>
+          <strong>{friendlyAddress}</strong>
+          <button disabled={saving || isSaved} onClick={bindWallet}>{saving ? "Saving..." : isSaved ? walletCopy.saved : walletCopy.bind}</button>
+        </section>
+      )}
       <div className="wallet-grid">
-        <InfoTile title={t.wallet.now} copy={t.wallet.nowCopy} />
-        <InfoTile title={t.wallet.before} copy={t.wallet.beforeCopy} />
-        <InfoTile title={t.wallet.later} copy={t.wallet.laterCopy} />
+        <InfoTile title={walletCopy.sdk} copy={walletCopy.sdkCopy} />
+        <InfoTile title={walletCopy.safety} copy={walletCopy.safetyCopy} />
+        <InfoTile title={walletCopy.utility} copy={walletCopy.utilityCopy} />
       </div>
       <div className="wallet-timeline">
         {t.wallet.steps.map((step) => <span key={step}>{step}</span>)}

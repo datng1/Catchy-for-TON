@@ -113,6 +113,19 @@ describe("CATCHY API", () => {
     expect(after.body.tasks.find((task: { code: string }) => task.code === "invite_friend").claimable).toBe(true);
   });
 
+  it("binds only valid TON wallet addresses", async () => {
+    const { token } = await login("180");
+    const bad = await request(app).post("/api/wallet/bind").set("Authorization", `Bearer ${token}`).send({ address: "not-a-wallet" });
+    expect(bad.status).toBe(400);
+
+    const good = await request(app)
+      .post("/api/wallet/bind")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ address: "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c" });
+    expect(good.status).toBe(200);
+    expect(good.body.user.walletAddress).toBe("UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJKZ");
+  });
+
   it("awards referral bonus after invited first valid run", async () => {
     const referrer = await login("200");
     const invited = await login("201", referrer.user.referralCode);
