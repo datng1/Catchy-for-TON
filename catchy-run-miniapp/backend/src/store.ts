@@ -358,6 +358,8 @@ export class Store {
     const row = await this.pg.query<{ data: Database }>("SELECT data FROM app_state WHERE id = $1", ["main"]);
     if (row.rows[0]?.data) {
       this.db = row.rows[0].data;
+      this.ensureDemoData();
+      await this.persist();
     } else {
       this.db = this.fresh();
       this.ensureDemoData();

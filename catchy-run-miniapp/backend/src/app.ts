@@ -57,7 +57,7 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
   app.get("/api/ads", (req: AuthedRequest, res) => {
     const placement = String(req.query.placement || "home_top");
     const now = new Date();
-    const ads = store.data().ads
+    const ads = (store.data().ads || [])
       .filter((ad) => ad.isActive && ad.placement === placement)
       .filter((ad) => (!ad.startsAt || new Date(ad.startsAt) <= now) && (!ad.endsAt || new Date(ad.endsAt) >= now));
     res.json({ ads: ads.map(publicAd) });
@@ -65,9 +65,10 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
 
   app.post("/api/ads/:id/impression", async (req: AuthedRequest, res) => {
     const user = req.user!;
-    const ad = store.data().ads.find((item) => item.id === req.params.id && item.isActive);
+    const ad = (store.data().ads || []).find((item) => item.id === req.params.id && item.isActive);
     if (!ad) return res.status(404).json({ error: "Ad not found." });
     ad.impressions += 1;
+    store.data().adViews ||= [];
     store.data().adViews.push({ id: nanoid(), userId: user.id, adId: ad.id, placement: ad.placement, viewedAt: new Date().toISOString() });
     await store.persist();
     res.json({ ok: true });
@@ -75,9 +76,10 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
 
   app.post("/api/ads/:id/click", async (req: AuthedRequest, res) => {
     const user = req.user!;
-    const ad = store.data().ads.find((item) => item.id === req.params.id && item.isActive);
+    const ad = (store.data().ads || []).find((item) => item.id === req.params.id && item.isActive);
     if (!ad) return res.status(404).json({ error: "Ad not found." });
     ad.clicks += 1;
+    store.data().adViews ||= [];
     const view = [...store.data().adViews].reverse().find((item) => item.userId === user.id && item.adId === ad.id && !item.clickedAt);
     if (view) view.clickedAt = new Date().toISOString();
     await store.persist();
@@ -279,7 +281,7 @@ function isTaskClaimable(store: Store, user: User, code: string) {
   }
   if (code === "join_group" || code === "meme_contest") return false;
   if (code === "join_channel") {
-    return store.data().adViews.some((view) => view.userId === user.id && view.placement === "daily_checkin" && view.viewedAt.startsWith(dayKey()));
+    return (store.data().adViews || []).some((view) => view.userId === user.id && view.placement === "daily_checkin" && view.viewedAt.startsWith(dayKey()));
   }
   return false;
 }
