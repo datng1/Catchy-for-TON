@@ -559,7 +559,9 @@ function Loading({ t }: { t: Copy }) {
   return (
     <main className="app-shell loading splash-screen">
       <div className="splash-card">
-        <div className="orb" />
+        <div className="splash-mascot" aria-label="CATCHY mascot">
+          <img src={mascotHero} alt="" />
+        </div>
         <h1>CATCHY RUN</h1>
         <p>{t.loading}</p>
         <span>{t.loadingMeta}</span>
