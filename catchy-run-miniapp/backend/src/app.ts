@@ -162,7 +162,7 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     res.json({ type, rows });
   });
 
-  const staticRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../frontend/dist");
+  const staticRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../frontend/dist");
   if (fsExists(staticRoot)) {
     app.use(express.static(staticRoot));
     app.get("*", (_req, res) => res.sendFile(path.join(staticRoot, "index.html")));
