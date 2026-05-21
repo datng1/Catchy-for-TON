@@ -9,7 +9,6 @@ RUN npm ci
 
 COPY . .
 RUN npm run build
-RUN npm prune --omit=dev
 
 FROM node:22-slim AS runtime
 
@@ -20,9 +19,9 @@ WORKDIR /app
 
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/backend/package*.json backend/
-COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/backend/dist backend/dist
 COPY --from=build /app/frontend/dist frontend/dist
+RUN npm ci --omit=dev --workspace backend --include-workspace-root=false
 
 EXPOSE 8787
 
