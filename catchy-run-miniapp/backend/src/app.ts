@@ -1,5 +1,6 @@
 import cors from "cors";
 import express, { type Request, type Response, type NextFunction } from "express";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { nanoid } from "nanoid";
@@ -161,12 +162,22 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     res.json({ type, rows });
   });
 
+  const staticRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../frontend/dist");
+  if (fsExists(staticRoot)) {
+    app.use(express.static(staticRoot));
+    app.get("*", (_req, res) => res.sendFile(path.join(staticRoot, "index.html")));
+  }
+
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     console.error(err);
     res.status(500).json({ error: "Internal server error." });
   });
 
   return app;
+}
+
+function fsExists(target: string) {
+  return Boolean(target) && path.isAbsolute(target) && existsSync(target);
 }
 
 function defaultDbPath() {
