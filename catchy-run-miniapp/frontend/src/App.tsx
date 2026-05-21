@@ -143,6 +143,8 @@ const copy = {
       title: "Invite runners, not bots",
       copy: "Referral points unlock only after a friend completes a valid run.",
       invite: "Your invite link",
+      copyLink: "Copy",
+      copied: "Copied",
       loading: "Loading invite link...",
       total: "total referral points",
       bonus: "Bonus",
@@ -788,12 +790,27 @@ function Tasks({ tasks, onClaim, t }: { tasks: Task[]; onClaim: (taskId: string)
 }
 
 function Friends({ referrals, t }: { referrals: { inviteLink: string; referrals: Array<{ pointsEarned: number; invited: { username: string } }>; totalBonus: number } | null; t: Copy }) {
+  const [copied, setCopied] = useState(false);
+  const inviteLink = referrals?.inviteLink || "";
+  const copyLabel = "copyLink" in t.friends ? t.friends.copyLink : "Copy";
+  const copiedLabel = "copied" in t.friends ? t.friends.copied : "Copied";
+
+  async function copyInvite() {
+    if (!inviteLink) return;
+    await navigator.clipboard?.writeText(inviteLink);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  }
+
   return (
     <div className="friends screen-stack">
       <ScreenTitle eyebrow={t.friends.eyebrow} title={t.friends.title} copy={t.friends.copy} />
       <div className="invite-card">
         <span>{t.friends.invite}</span>
-        <p>{referrals?.inviteLink || t.friends.loading}</p>
+        <div className="invite-link-row">
+          <p>{inviteLink || t.friends.loading}</p>
+          <button disabled={!inviteLink} onClick={copyInvite}>{copied ? copiedLabel : copyLabel}</button>
+        </div>
         <strong>{referrals?.totalBonus || 0} {t.friends.total}</strong>
       </div>
       <div className="summary-strip">
