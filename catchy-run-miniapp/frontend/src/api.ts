@@ -1,5 +1,5 @@
 export type Profile = {
-  user: { id: string; username: string; firstName: string; referralCode: string; walletAddress?: string };
+  user: { id: string; telegramId: string; username: string; firstName: string; referralCode: string; walletAddress?: string };
   stats: Stats;
   disclaimer: string;
 };
@@ -43,7 +43,7 @@ type ReferralResponse = {
 };
 
 type LeaderboardResponse = {
-  rows: Array<{ rank: number; user: { username: string; firstName: string }; score: number; bestScore: number }>;
+  rows: Array<{ rank: number; user: { telegramId: string; username: string; firstName: string }; score: number; bestScore: number }>;
 };
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
@@ -88,6 +88,7 @@ function makeProfile(): Profile {
   return {
     user: {
       id: fallbackId,
+      telegramId: fallbackId,
       username: "blue_runner",
       firstName: "Catchy",
       referralCode: `CATCHY${fallbackId}`
@@ -312,10 +313,10 @@ export const api = {
     fallbackOnOffline(() => requestApi<LeaderboardResponse>(`/api/leaderboard?type=${type}`), () => {
       const profile = getMockProfile();
       const rows: LeaderboardResponse["rows"] = [
-        { rank: 1, user: { username: "aqua_ace", firstName: "Aqua" }, score: 48600, bestScore: 48600 },
+        { rank: 1, user: { telegramId: "900001", username: "aqua_ace", firstName: "Aqua" }, score: 48600, bestScore: 48600 },
         { rank: 2, user: profile.user, score: Math.max(37200, profile.stats.bestScore), bestScore: profile.stats.bestScore },
-        { rank: 3, user: { username: "pixel_ton", firstName: "Pixel" }, score: 34550, bestScore: 34550 },
-        { rank: 4, user: { username: "moon_tapper", firstName: "Moon" }, score: 29820, bestScore: 29820 }
+        { rank: 3, user: { telegramId: "900003", username: "pixel_ton", firstName: "Pixel" }, score: 34550, bestScore: 34550 },
+        { rank: 4, user: { telegramId: "900004", username: "moon_tapper", firstName: "Moon" }, score: 29820, bestScore: 29820 }
       ]
         .sort((a, b) => b.score - a.score)
         .map((row, index) => ({ ...row, rank: index + 1 }));

@@ -429,7 +429,7 @@ export function App() {
   const [homeAd, setHomeAd] = useState<Ad | null>(null);
   const [afterRunAd, setAfterRunAd] = useState<Ad | null>(null);
   const [referrals, setReferrals] = useState<{ inviteLink: string; referrals: Array<{ pointsEarned: number; invited: { username: string } }>; totalBonus: number } | null>(null);
-  const [leaders, setLeaders] = useState<Array<{ rank: number; user: { username: string; firstName: string }; score: number; bestScore: number }>>([]);
+  const [leaders, setLeaders] = useState<Array<{ rank: number; user: { telegramId: string; username: string; firstName: string }; score: number; bestScore: number }>>([]);
   const [leaderType, setLeaderType] = useState("today");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -934,18 +934,21 @@ function WatchAdModal({ ad, onClose, onViewed }: { ad: Ad | null; onClose: () =>
   );
 }
 
-function Leaderboard({ rows, type, onType, t }: { rows: Array<{ rank: number; user: { username: string; firstName: string }; score: number; bestScore: number }>; type: string; onType: (type: string) => void; t: Copy }) {
+function Leaderboard({ rows, type, onType, t }: { rows: Array<{ rank: number; user: { telegramId: string; username: string; firstName: string }; score: number; bestScore: number }>; type: string; onType: (type: string) => void; t: Copy }) {
   return (
     <div className="screen-stack">
       <ScreenTitle eyebrow={t.leaders.eyebrow} title={t.leaders.title} copy={t.leaders.copy} />
       <div className="segments">{["today", "allTime", "referrers", "earlyBelievers"].map((item) => <button className={type === item ? "active" : ""} key={item} onClick={() => onType(item)}>{labelForBoard(item, t)}</button>)}</div>
       <div className="podium">
-        {rows.slice(0, 3).map((row) => <div className="podium-card" key={row.rank}><span>#{row.rank}</span><strong>{row.user.firstName}</strong><em>{row.score} pts</em></div>)}
+        {rows.slice(0, 3).map((row) => <div className="podium-card" key={row.rank}><span>#{row.rank}</span><strong>{row.user.firstName}</strong><small>TG ID {row.user.telegramId}</small><em>{row.score} pts</em></div>)}
       </div>
       <div className="list">
         {rows.length ? rows.map((row) => (
-          <article className="row leader-row" key={`${row.rank}-${row.user.username}`}>
-            <div><strong>#{row.rank} {row.user.firstName}</strong><span>@{row.user.username || "runner"} / {t.leaders.best} {row.bestScore}</span></div>
+          <article className="row leader-row" key={`${row.rank}-${row.user.telegramId || row.user.username}`}>
+            <div>
+              <strong>#{row.rank} {row.user.firstName}</strong>
+              <span>@{row.user.username || "runner"} / TG ID {row.user.telegramId || "unknown"} / {t.leaders.best} {row.bestScore}</span>
+            </div>
             <em>{row.score} pts</em>
           </article>
         )) : <EmptyState title={t.leaders.empty} copy={t.leaders.emptyCopy} />}

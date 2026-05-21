@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 
 const profile = {
-  user: { id: "u1", username: "blue_runner", firstName: "Catchy", referralCode: "abc" },
+  user: { id: "u1", telegramId: "777001", username: "blue_runner", firstName: "Catchy", referralCode: "abc" },
   stats: { level: 1, xp: 0, energy: 5, memePoints: 0, dailyPoints: 0, totalScore: 0, bestScore: 0, totalRuns: 0 },
   disclaimer: "Catchy Points are in-app activity points. They are not tokens or money, but they will be a major factor in calculating future rewards if rewards are announced."
 };
@@ -33,6 +33,7 @@ describe("App", () => {
     await waitFor(() => expect(screen.getAllByText("Friends").length).toBeGreaterThan(0));
     fireEvent.click(screen.getAllByText("Leaders").at(-1)!);
     await waitFor(() => expect(screen.getAllByText(/#1/).length).toBeGreaterThan(0));
+    expect(screen.getAllByText(/TG ID 777001/).length).toBeGreaterThan(0);
   });
 
   it("starts and finishes a run", async () => {

@@ -159,6 +159,7 @@ describe("CATCHY API", () => {
     const today = await request(app).get("/api/leaderboard?type=today").set("Authorization", `Bearer ${token}`);
     const todayRow = today.body.rows.find((row: { user: { telegramId: string } }) => row.user.telegramId === "176");
     expect(todayRow).toBeTruthy();
+    expect(todayRow.user).toMatchObject({ telegramId: "176", username: "u176", firstName: "Tester" });
     expect(todayRow.score).toBe(storedStats.dailyPoints);
 
     const allTime = await request(app).get("/api/leaderboard?type=allTime").set("Authorization", `Bearer ${token}`);
