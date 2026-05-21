@@ -108,6 +108,8 @@ const copy = {
       antiCopy: "Score only grows from clean hits. Misses and FUD reduce the final run score.",
       dailyCap: "Daily Cap",
       dailyCopy: "Catchy Points stop at 1,000 per day.",
+      guideTitle: "How to play",
+      guideSteps: ["Tap blue sparks before they pass you", "Avoid red FUD blocks unless your shield is active", "Clean hits add points; air taps and missed sparks subtract points", "Every 5 seconds sparks get smaller and faster"],
       start: "Start Run",
       complete: "Run Complete",
       streak: "Sharp Streak",
@@ -311,6 +313,8 @@ const copy = {
       antiCopy: "Счет растет только от точных кликов. Ошибки и FUD снижают итог.",
       dailyCap: "Дневной лимит",
       dailyCopy: "Catchy Points останавливаются на 1,000 в день.",
+      guideTitle: "Как играть",
+      guideSteps: ["Нажимай на голубые искры до того, как они улетят", "Избегай красных FUD-блоков, если нет щита", "Точные нажатия дают очки; промахи и пропущенные искры снимают очки", "Каждые 5 секунд искры становятся меньше и быстрее"],
       start: "Начать забег",
       complete: "Забег завершен",
       streak: "Точная серия",
@@ -761,6 +765,15 @@ function Play({ ad, onDone, onError, stats, onHome, t }: { ad: Ad | null; onDone
             <InfoTile title={t.play.antiInflation} copy={t.play.antiCopy} />
             <InfoTile title={t.play.dailyCap} copy={t.play.dailyCopy} />
           </div>
+          <section className="how-to-play">
+            <div>
+              <p className="eyebrow">{t.mechanics.spark}</p>
+              <h3>{t.play.guideTitle}</h3>
+            </div>
+            <ol>
+              {t.play.guideSteps.map((step) => <li key={step}>{step}</li>)}
+            </ol>
+          </section>
           <button className="play-button compact" disabled={!stats || stats.energy <= 0} onClick={start}>{t.play.start}</button>
         </div>
       )}

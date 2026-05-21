@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent, type TouchEvent } from "react";
 import iconBoost from "./assets/icon-boost.png";
 import iconFud from "./assets/icon-fud.png";
 import iconShield from "./assets/icon-shield.png";
@@ -181,6 +181,7 @@ export function GameCanvas({
   const shieldRef = useRef(0);
   const boostRef = useRef(0);
   const finishedRef = useRef(false);
+  const lastInputRef = useRef(0);
 
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
@@ -253,6 +254,30 @@ export function GameCanvas({
     setHits(hitsRef.current);
     setMisses(missesRef.current);
   }, []);
+
+  const tapFromPoint = useCallback((clientX: number, clientY: number, source: "pointer" | "touch" | "click") => {
+    const now = performance.now();
+    if (source !== "pointer" && now - lastInputRef.current < 90) return;
+    lastInputRef.current = now;
+    tap(clientX, clientY);
+  }, [tap]);
+
+  const handlePointerDown = useCallback((event: PointerEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    tapFromPoint(event.clientX, event.clientY, "pointer");
+  }, [tapFromPoint]);
+
+  const handleTouchStart = useCallback((event: TouchEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    const touch = event.changedTouches[0];
+    if (touch) tapFromPoint(touch.clientX, touch.clientY, "touch");
+  }, [tapFromPoint]);
+
+  const handleClick = useCallback((event: MouseEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    tapFromPoint(event.clientX, event.clientY, "click");
+  }, [tapFromPoint]);
 
   useEffect(() => {
     const runner = new Image();
@@ -363,7 +388,9 @@ export function GameCanvas({
         ref={canvasRef}
         width={WIDTH}
         height={HEIGHT}
-        onPointerDown={(event) => tap(event.clientX, event.clientY)}
+        onPointerDown={handlePointerDown}
+        onTouchStart={handleTouchStart}
+        onClick={handleClick}
         aria-label="CATCHY runner game"
       />
       <div className="hit-miss" aria-live="polite">

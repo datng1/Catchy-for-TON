@@ -562,6 +562,40 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
   border: 1px solid rgba(12, 119, 171, .18);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.42), 0 16px 36px rgba(13, 127, 184, .18);
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.game-wrap {
+  touch-action: manipulation;
+  overscroll-behavior: contain;
+}
+
+.how-to-play {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid rgba(12, 119, 171, .12);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(255,255,255,.94), rgba(213,249,255,.9));
+}
+
+.how-to-play h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.how-to-play ol {
+  margin: 0;
+  padding-left: 20px;
+  color: #1f789e;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.how-to-play li + li {
+  margin-top: 5px;
 }
 
 .hud {
