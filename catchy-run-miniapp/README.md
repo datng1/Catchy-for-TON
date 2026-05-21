@@ -6,7 +6,8 @@ Local-first full-stack MVP for the CATCHY RUN Telegram Mini App.
 
 - Frontend: React + Vite + TypeScript
 - Backend: Node + TypeScript + Express
-- Local persistence: SQLite file under `backend/data/local.sqlite`, with an in-memory/file fallback for tests.
+- Local persistence: SQLite file under `backend/data/local.sqlite`, with an in-memory fallback for tests.
+- Production persistence: Fly Postgres via `DATABASE_URL`.
 
 ## Run
 
@@ -18,6 +19,15 @@ npm run dev
 Frontend: `http://127.0.0.1:5173`
 
 Backend: `http://127.0.0.1:8787`
+
+## Production Env
+
+```bash
+DATABASE_URL=postgres://...
+TELEGRAM_BOT_TOKEN=123456:bot-token-from-botfather
+```
+
+`DATABASE_URL` is created by Fly when the Postgres app is attached. `TELEGRAM_BOT_TOKEN` is required for real Telegram `initData` validation; without it, only local mock auth should be used.
 
 ## Verify
 
