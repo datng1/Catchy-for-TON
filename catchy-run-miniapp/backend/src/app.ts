@@ -104,13 +104,13 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
 
   app.get("/api/tasks", (req: AuthedRequest, res) => {
     const today = dayKey();
-    const claims = store.data().userDailyTasks.filter((claim) => claim.userId === req.user!.id && claim.date === today);
-    const stats = store.statsFor(req.user!.id);
+    const user = req.user!;
+    const claims = store.data().userDailyTasks.filter((claim) => claim.userId === user.id && claim.date === today);
     res.json({
       tasks: store.data().dailyTasks.filter((task) => task.isActive).map((task) => ({
         ...task,
         claimed: claims.some((claim) => claim.taskId === task.id),
-        claimable: task.code !== "play_3_runs" || stats.totalRuns >= 3
+        claimable: isTaskClaimable(store, user, task.code)
       }))
     });
   });
@@ -123,7 +123,7 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     if (store.data().userDailyTasks.some((claim) => claim.userId === req.user!.id && claim.taskId === task.id && claim.date === today)) {
       return res.status(409).json({ error: "Task already claimed." });
     }
-    if (task.code === "play_3_runs" && store.statsFor(req.user!.id).totalRuns < 3) {
+    if (!isTaskClaimable(store, req.user!, task.code)) {
       return res.status(409).json({ error: "Task is not complete yet." });
     }
     const pointsEarned = store.addDailyPoints(req.user!.id, task.rewardPoints, "task_claim");
@@ -206,6 +206,15 @@ function maybeAwardReferral(store: Store, invitedId: string, pointsEarned: numbe
   const bonus = Math.floor(pointsEarned * ECONOMY.referralBonusRate);
   referral.firstValidRunAt = new Date().toISOString();
   referral.pointsEarned += store.addDailyPoints(referral.referrerId, bonus, "referral_bonus");
+}
+
+function isTaskClaimable(store: Store, user: User, code: string) {
+  if (code === "play_3_runs") return store.statsFor(user.id).totalRuns >= 3;
+  if (code === "invite_friend") {
+    return store.data().referrals.some((ref) => ref.referrerId === user.id && Boolean(ref.firstValidRunAt));
+  }
+  if (code === "join_group" || code === "meme_contest") return false;
+  return code === "join_channel";
 }
 
 function publicUser(user: User) {

@@ -760,15 +760,19 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
 
 .loading {
   display: grid;
-  place-content: center;
+  place-items: center;
   text-align: center;
 }
 
 .splash-screen {
-  width: min(100%, 520px);
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  padding: 18px;
 }
 
 .splash-card {
+  width: min(100%, 420px);
   display: grid;
   justify-items: center;
   gap: 8px;
@@ -819,6 +823,18 @@ button:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
   border-radius: 50%;
   background: radial-gradient(circle at 65% 30%, white 0 12px, #5de7ff 13px, #0784bf 100%);
   box-shadow: 0 0 50px rgba(40, 199, 239, .45);
+  animation: orb-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes orb-pulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 34px rgba(40, 199, 239, .35);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.06);
+    box-shadow: 0 0 68px rgba(40, 199, 239, .62);
+  }
 }
 
 .language-card {

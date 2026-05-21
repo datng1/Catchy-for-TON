@@ -84,7 +84,7 @@ export type Database = {
 };
 
 const defaultTasks: DailyTask[] = [
-  { id: "join-channel", code: "join_channel", title: "Join the CATCHY channel", rewardPoints: 80, isActive: true },
+  { id: "join-channel", code: "join_channel", title: "Daily Check-in", rewardPoints: 80, isActive: true },
   { id: "join-group", code: "join_group", title: "Enter the blue-speed group", rewardPoints: 80, isActive: true },
   { id: "play-3", code: "play_3_runs", title: "Complete 3 sharp runs", rewardPoints: 120, isActive: true },
   { id: "invite-friend", code: "invite_friend", title: "Bring one real runner", rewardPoints: 150, isActive: true },

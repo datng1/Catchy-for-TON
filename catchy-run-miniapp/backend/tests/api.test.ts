@@ -96,6 +96,23 @@ describe("CATCHY API", () => {
     expect(refs.body.referrals[0].firstValidRunAt).toBeUndefined();
   });
 
+  it("locks invite task until a referred user completes a valid run", async () => {
+    const referrer = await login("170");
+    const before = await request(app).get("/api/tasks").set("Authorization", `Bearer ${referrer.token}`);
+    expect(before.body.tasks.find((task: { code: string }) => task.code === "invite_friend").claimable).toBe(false);
+
+    const blocked = await request(app).post("/api/tasks/claim").set("Authorization", `Bearer ${referrer.token}`).send({ taskId: "invite-friend" });
+    expect(blocked.status).toBe(409);
+
+    const invited = await login("171", referrer.user.referralCode);
+    const runId = await start(invited.token);
+    ageRun(runId, 8);
+    await request(app).post("/api/run/finish").set("Authorization", `Bearer ${invited.token}`).send({ runId, score: 9000, durationSeconds: 8 });
+
+    const after = await request(app).get("/api/tasks").set("Authorization", `Bearer ${referrer.token}`);
+    expect(after.body.tasks.find((task: { code: string }) => task.code === "invite_friend").claimable).toBe(true);
+  });
+
   it("awards referral bonus after invited first valid run", async () => {
     const referrer = await login("200");
     const invited = await login("201", referrer.user.referralCode);

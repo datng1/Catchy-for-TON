@@ -65,7 +65,7 @@ const defaultStats: Stats = {
 };
 
 const defaultTasks: Task[] = [
-  { id: "join-channel", code: "join", title: "Join channel", rewardPoints: 80, claimed: false, claimable: true },
+  { id: "join-channel", code: "join", title: "Daily Check-in", rewardPoints: 80, claimed: false, claimable: true },
   { id: "play-three", code: "runs", title: "Play 3 runs", rewardPoints: 120, claimed: false, claimable: false },
   { id: "invite-friend", code: "invite", title: "Invite a friend", rewardPoints: 150, claimed: false, claimable: false },
   { id: "meme-contest", code: "meme", title: "Post a CATCHY meme", rewardPoints: 200, claimed: false, claimable: true }
