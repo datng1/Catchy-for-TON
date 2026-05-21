@@ -153,7 +153,7 @@ export function createApp(store = new Store(process.env.CATCHY_DB_PATH || defaul
     const user = req.user!;
     const refs = store.data().referrals.filter((ref) => ref.referrerId === user.id);
     res.json({
-      inviteLink: `https://t.me/CatchyRunBot/app?startapp=${user.referralCode}`,
+      inviteLink: `https://t.me/${botUsername()}?startapp=${user.referralCode}`,
       referralCode: user.referralCode,
       referrals: refs.map((ref) => ({ ...ref, invited: publicUser(store.findUserById(ref.invitedId)!) })),
       totalBonus: refs.reduce((sum, ref) => sum + ref.pointsEarned, 0)
@@ -242,6 +242,10 @@ function publicUser(user: User) {
     firstName: user.firstName,
     referralCode: user.referralCode
   };
+}
+
+function botUsername() {
+  return process.env.TELEGRAM_BOT_USERNAME || "Catchymemeforton_bot";
 }
 
 function validateTelegramInitData(initData: string, botToken: string) {

@@ -254,7 +254,7 @@ export const api = {
     fallbackOnOffline(() => requestApi<ReferralResponse>("/api/referrals"), () => {
       const profile = getMockProfile();
       return {
-        inviteLink: `https://t.me/CatchyRunBot/app?startapp=${profile.user.referralCode}`,
+        inviteLink: `https://t.me/Catchymemeforton_bot?startapp=${profile.user.referralCode}`,
         referralCode: profile.user.referralCode,
         totalBonus: 24,
         referrals: [
