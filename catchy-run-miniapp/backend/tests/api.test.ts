@@ -132,6 +132,30 @@ describe("CATCHY API", () => {
     expect(after.body.tasks.find((task: { code: string }) => task.code === "join_channel").claimable).toBe(true);
   });
 
+  it("updates today and all-time leaderboards from stored Catchy Points", async () => {
+    const { token } = await login("176");
+    const runId = await start(token);
+    ageRun(runId, 8);
+
+    const finish = await request(app).post("/api/run/finish").set("Authorization", `Bearer ${token}`).send({ runId, score: 9000, durationSeconds: 8 });
+    expect(finish.status).toBe(200);
+    expect(finish.body.pointsEarned).toBeGreaterThan(0);
+
+    const user = store.findUserByTelegram("176");
+    expect(user).toBeTruthy();
+    const storedStats = store.statsFor(user!.id);
+
+    const today = await request(app).get("/api/leaderboard?type=today").set("Authorization", `Bearer ${token}`);
+    const todayRow = today.body.rows.find((row: { user: { telegramId: string } }) => row.user.telegramId === "176");
+    expect(todayRow).toBeTruthy();
+    expect(todayRow.score).toBe(storedStats.dailyPoints);
+
+    const allTime = await request(app).get("/api/leaderboard?type=allTime").set("Authorization", `Bearer ${token}`);
+    const allTimeRow = allTime.body.rows.find((row: { user: { telegramId: string } }) => row.user.telegramId === "176");
+    expect(allTimeRow).toBeTruthy();
+    expect(allTimeRow.score).toBe(storedStats.memePoints);
+  });
+
   it("binds only valid TON wallet addresses", async () => {
     const { token } = await login("180");
     const bad = await request(app).post("/api/wallet/bind").set("Authorization", `Bearer ${token}`).send({ address: "not-a-wallet" });
